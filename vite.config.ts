@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["e-shuri-platform.onrender.com"],
   },
   plugins: [react(), mode === "development" && Inspector()].filter(Boolean),
   resolve: {
