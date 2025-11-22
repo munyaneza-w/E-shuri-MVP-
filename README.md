@@ -5,8 +5,6 @@ It provides structured lessons, quizzes, and performance tracking to enhance **l
 
 > 🌍 *“Learn, Grow, and Excel with Quality Digital Education.”*
 
----
-
 ## 🚀 **Core Features**
 
 - **🔐 User Authentication** – Secure login and account management for students and teachers.  
@@ -15,8 +13,6 @@ It provides structured lessons, quizzes, and performance tracking to enhance **l
 - **📈 Progress Tracking** – Monitor learning performance and quiz history.  
 - **📱 Responsive Design** – Works seamlessly on desktops, tablets, and mobile devices.  
 - **👩‍🏫 Teacher Tools** – Upload and organize educational content aligned with the REB curriculum.
-
----
 
 ## 🗂️ **Project Structure**
 e-shuri/
@@ -32,8 +28,6 @@ e-shuri/
 │── README.md # Documentation
 
 
----
-
 ## 🎨 **Design Overview**
 
 - **Wireframes & Mockups:** [View in Figma](https://www.figma.com/design/gMHuPsN8kFgjO33YootGcX/E-shuri?node-id=0-1&m=dev&t=uzBCgYGg36q2rtKQ-1)  
@@ -41,7 +35,6 @@ e-shuri/
 - **UI Principles:** Minimal, accessible, and optimized for learners aged 11–18  
 - **Design Goals:** Simplicity, usability, inclusivity, and mobile responsiveness  
 
----
 
 ## 📸 **Screenshots**
 
@@ -72,7 +65,6 @@ e-shuri/
 ### 🏠 Lesson Page  
 ![Lesson Page](src/assets/Screenshots/Lesson.png)
 
----
 
 ## ⚙️ **Technology Stack**
 
@@ -83,7 +75,6 @@ e-shuri/
 | **Development Tools** | Visual Studio Code, Git & GitHub, Postman |
 | **Deployment** | Vercel (frontend hosting) + Supabase (database & auth) |
 
----
 
 ## 🛠️ **Setup Instructions**
 
