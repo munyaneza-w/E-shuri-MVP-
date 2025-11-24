@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { GraduationCap, BookOpen, FileText, TrendingUp, LogOut, Award, Sparkles, Target, Clock } from "lucide-react";
+import {
+  GraduationCap, BookOpen, FileText, TrendingUp, LogOut,
+  Award, Sparkles, Target, Clock
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Profile {
@@ -37,13 +40,14 @@ const Dashboard = () => {
     completedQuizzes: 0,
   });
 
+  // -----------------------------
+  //     AUTH + PROFILE LOAD
+  // -----------------------------
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        if (!session) {
-          navigate("/auth");
-        }
+        if (!session) navigate("/auth");
       }
     );
 
@@ -59,8 +63,11 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // -----------------------------
+  //     LOAD PROFILE + ROLE
+  // -----------------------------
   const fetchProfile = async (userId: string) => {
-    // Fetch profile
+    // Load basic profile
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("full_name")
@@ -73,7 +80,7 @@ const Dashboard = () => {
       return;
     }
 
-    // Fetch user role from user_roles table
+    // Load role
     const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
@@ -88,17 +95,20 @@ const Dashboard = () => {
 
     setProfile(profileData);
     setUserRole(roleData);
-    
-    // Redirect to appropriate dashboard
+
+    // Restore missing logic: load courses & stats
     if (roleData.role === "student") {
-      navigate("/student-dashboard");
+      fetchStudentCourses(userId);
     } else if (roleData.role === "teacher") {
-      navigate("/teacher-dashboard");
+      fetchTeacherSubjects(userId);
     }
-    
+
     setLoading(false);
   };
 
+  // -----------------------------
+  //      STUDENT DATA
+  // -----------------------------
   const fetchStudentCourses = async (userId: string) => {
     const { data, error } = await supabase
       .from("student_courses")
@@ -106,9 +116,7 @@ const Dashboard = () => {
         id,
         subject_id,
         progress,
-        subjects (
-          name
-        )
+        subjects ( name )
       `)
       .eq("student_id", userId);
 
@@ -123,15 +131,9 @@ const Dashboard = () => {
       );
     }
 
-    // Fetch student stats
-    const { data: subjectData } = await supabase
-      .from("subjects")
-      .select("id");
-    
-    const { data: quizData } = await supabase
-      .from("quizzes")
-      .select("id");
-    
+    // Stats
+    const { data: subjectData } = await supabase.from("subjects").select("id");
+    const { data: quizData } = await supabase.from("quizzes").select("id");
     const { data: attemptData } = await supabase
       .from("quiz_attempts")
       .select("id")
@@ -145,15 +147,15 @@ const Dashboard = () => {
     });
   };
 
+  // -----------------------------
+  //      TEACHER DATA
+  // -----------------------------
   const fetchTeacherSubjects = async (userId: string) => {
     const { data, error } = await supabase
       .from("teacher_subjects")
       .select(`
         subject_id,
-        subjects (
-          id,
-          name
-        )
+        subjects ( id, name )
       `)
       .eq("teacher_id", userId);
 
@@ -163,17 +165,25 @@ const Dashboard = () => {
           id: item.subject_id,
           subject_id: item.subject_id,
           subject_name: item.subjects?.name || "Unknown",
-          progress: 100, // Teachers always show 100%
+          progress: 100,
         }))
       );
     }
   };
 
+  // -----------------------------
+  //        SIGN OUT
+  // -----------------------------
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate("/");
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "/auth";
   };
 
+  // -----------------------------
+  //        LOADING STATE
+  // -----------------------------
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-accent to-background">
@@ -194,9 +204,12 @@ const Dashboard = () => {
     );
   }
 
+  // -----------------------------
+  //         MAIN UI
+  // -----------------------------
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation Bar */}
+      {/* NAVIGATION BAR */}
       <nav className="bg-card border-b sticky top-0 z-50 backdrop-blur-sm bg-card/95">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -207,18 +220,23 @@ const Dashboard = () => {
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 E-shuri
               </h1>
-              <p className="text-xs text-muted-foreground">Rwanda Learning Platform</p>
+              <p className="text-xs text-muted-foreground">
+                Rwanda Learning Platform
+              </p>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => navigate("/subjects")} className="hidden md:flex">
               Browse Subjects
             </Button>
+
             {(userRole?.role === "teacher" || userRole?.role === "admin") && (
               <Button variant="ghost" onClick={() => navigate("/upload")} className="hidden md:flex">
                 Upload Content
               </Button>
             )}
+
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">Sign Out</span>
@@ -227,7 +245,7 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* HERO SECTION */}
       <div className="relative overflow-hidden bg-gradient-to-br from-primary via-secondary to-primary py-16 md:py-24">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
         <div className="container mx-auto px-4 relative">
@@ -238,30 +256,37 @@ const Dashboard = () => {
                 {userRole?.role === "student" ? "Student Dashboard" : "Teacher Dashboard"}
               </span>
             </div>
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-4">
               Welcome back, {profile?.full_name}!
             </h1>
+
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-8">
               {userRole?.role === "student"
                 ? "Continue your learning journey with Rwanda's best educational platform"
                 : "Manage your content and empower the next generation of learners"}
             </p>
+
             {userRole?.role === "student" && (
               <div className="flex flex-col gap-4 bg-white/10 backdrop-blur-sm rounded-2xl p-6">
                 <div className="flex items-center justify-between text-primary-foreground">
                   <span className="text-sm font-medium">Overall Progress</span>
-                  <span className="text-sm font-bold">45%</span>
+                 
                 </div>
+
                 <Progress value={45} className="h-3 bg-white/20" />
+
                 <div className="grid grid-cols-3 gap-4 mt-2">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary-foreground">{stats.totalSubjects}</div>
                     <div className="text-xs text-primary-foreground/70">Subjects</div>
                   </div>
+
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary-foreground">{stats.totalQuizzes}</div>
                     <div className="text-xs text-primary-foreground/70">Quizzes</div>
                   </div>
+
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary-foreground">{stats.completedQuizzes}</div>
                     <div className="text-xs text-primary-foreground/70">Completed</div>
@@ -273,32 +298,35 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* MAIN CONTENT */}
       <div className="container mx-auto px-4 py-12 max-w-7xl">
         {userRole?.role === "student" ? (
           <>
-            {/* Quick Actions */}
+            {/* QUICK ACTIONS */}
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Target className="h-6 w-6 text-primary" />
                 Quick Actions
               </h2>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card 
-                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 bg-gradient-to-br from-card to-card hover:scale-105"
+
+                {/* Browse Subjects */}
+                <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 bg-gradient-to-br from-card to-card hover:scale-105"
                   onClick={() => navigate("/subjects")}
                 >
                   <CardHeader className="space-y-4">
-                    <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-4 rounded-2xl w-fit shadow-lg group-hover:shadow-xl transition-shadow">
+                    <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-4 rounded-2xl w-fit shadow-lg group-hover:shadow-xl">
                       <BookOpen className="h-10 w-10" />
                     </div>
                     <div>
                       <CardTitle className="text-xl mb-2">Browse Subjects</CardTitle>
                       <CardDescription className="text-base">
-                        Explore curriculum-aligned content across all O & A Level subjects
+                        Explore curriculum-aligned content for all O & A Level subjects
                       </CardDescription>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex items-center gap-2 text-sm text-primary font-medium">
                       <span>Start Learning</span>
@@ -307,21 +335,22 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-secondary/50 bg-gradient-to-br from-card to-card hover:scale-105"
+                {/* Quizzes */}
+                <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-secondary/50 bg-gradient-to-br from-card to-card hover:scale-105"
                   onClick={() => navigate("/quizzes")}
                 >
                   <CardHeader className="space-y-4">
-                    <div className="bg-gradient-to-br from-secondary to-secondary/80 text-secondary-foreground p-4 rounded-2xl w-fit shadow-lg group-hover:shadow-xl transition-shadow">
+                    <div className="bg-gradient-to-br from-secondary to-secondary/80 text-secondary-foreground p-4 rounded-2xl w-fit shadow-lg">
                       <FileText className="h-10 w-10" />
                     </div>
                     <div>
                       <CardTitle className="text-xl mb-2">Take Quizzes</CardTitle>
                       <CardDescription className="text-base">
-                        Test your knowledge with CBC-aligned practice exercises
+                        Practice CBC-aligned exercises and improve your mastery
                       </CardDescription>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex items-center gap-2 text-sm text-secondary font-medium">
                       <span>Practice Now</span>
@@ -330,21 +359,22 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 bg-gradient-to-br from-card to-card hover:scale-105"
+                {/* Progress */}
+                <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 bg-gradient-to-br from-card to-card hover:scale-105"
                   onClick={() => navigate("/progress")}
                 >
                   <CardHeader className="space-y-4">
-                    <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-4 rounded-2xl w-fit shadow-lg group-hover:shadow-xl transition-shadow">
+                    <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-4 rounded-2xl w-fit shadow-lg">
                       <TrendingUp className="h-10 w-10" />
                     </div>
                     <div>
                       <CardTitle className="text-xl mb-2">My Progress</CardTitle>
                       <CardDescription className="text-base">
-                        Track your mastery levels and performance analytics
+                        Track your performance and mastery analytics
                       </CardDescription>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex items-center gap-2 text-sm text-primary font-medium">
                       <span>View Stats</span>
@@ -352,20 +382,22 @@ const Dashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
+
               </div>
             </div>
 
-            {/* My Courses Section */}
+            {/* MY COURSES */}
             <div>
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Clock className="h-6 w-6 text-secondary" />
                 My Courses
               </h2>
+
               {courses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {courses.map((course, index) => (
-                    <Card 
-                      key={course.id} 
+                    <Card
+                      key={course.id}
                       className={`border-l-4 cursor-pointer hover:shadow-lg transition-shadow ${
                         index % 2 === 0 ? "border-l-primary" : "border-l-secondary"
                       }`}
@@ -375,9 +407,12 @@ const Dashboard = () => {
                         <CardTitle className="text-lg">{course.subject_name}</CardTitle>
                         <CardDescription>Click to view content</CardDescription>
                       </CardHeader>
+
                       <CardContent>
                         <Progress value={course.progress} className="mb-2" />
-                        <p className="text-sm text-muted-foreground">{course.progress}% Complete</p>
+                        <p className="text-sm text-muted-foreground">
+                          {course.progress}% Complete
+                        </p>
                       </CardContent>
                     </Card>
                   ))}
@@ -386,10 +421,12 @@ const Dashboard = () => {
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-center text-muted-foreground">
-                      You haven't enrolled in any courses yet. Browse subjects to get started!
+                      You haven’t enrolled in any courses yet. Browse subjects to get started!
                     </p>
                     <div className="flex justify-center mt-4">
-                      <Button onClick={() => navigate("/subjects")}>Browse Subjects</Button>
+                      <Button onClick={() => navigate("/subjects")}>
+                        Browse Subjects
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -397,13 +434,17 @@ const Dashboard = () => {
             </div>
           </>
         ) : (
+          // -----------------------------
+          //       TEACHER DASHBOARD
+          // -----------------------------
           <>
-            {/* Teacher Quick Actions */}
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-6">Teacher Tools</h2>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card 
-                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 hover:scale-105"
+
+                {/* Upload content */}
+                <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 hover:scale-105"
                   onClick={() => navigate("/upload")}
                 >
                   <CardHeader className="space-y-4">
@@ -412,11 +453,10 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <CardTitle className="text-xl mb-2">Upload Content</CardTitle>
-                      <CardDescription className="text-base">
-                        Add new lessons, videos, and educational materials by year and unit
-                      </CardDescription>
+                      <CardDescription>Add lessons, videos, teaching materials</CardDescription>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex items-center gap-2 text-sm text-primary font-medium">
                       <span>Upload Now</span>
@@ -425,8 +465,8 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-secondary/50 hover:scale-105"
+                {/* Create Quiz */}
+                <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-secondary/50 hover:scale-105"
                   onClick={() => navigate("/create-quiz")}
                 >
                   <CardHeader className="space-y-4">
@@ -435,11 +475,10 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <CardTitle className="text-xl mb-2">Create Quiz</CardTitle>
-                      <CardDescription className="text-base">
-                        Build CBC-aligned assessments for your students
-                      </CardDescription>
+                      <CardDescription>Build CBC-aligned assessments</CardDescription>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex items-center gap-2 text-sm text-secondary font-medium">
                       <span>Create Now</span>
@@ -448,8 +487,8 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 hover:scale-105"
+                {/* Student performance */}
+                <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 hover:scale-105"
                   onClick={() => navigate("/student-performance")}
                 >
                   <CardHeader className="space-y-4">
@@ -458,11 +497,10 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <CardTitle className="text-xl mb-2">Student Performance</CardTitle>
-                      <CardDescription className="text-base">
-                        View detailed analytics and progress tracking for all students
-                      </CardDescription>
+                      <CardDescription>Analytics for student progress</CardDescription>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex items-center gap-2 text-sm text-primary font-medium">
                       <span>View Analytics</span>
@@ -471,8 +509,8 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-secondary/50 hover:scale-105"
+                {/* Past exams */}
+                <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-secondary/50 hover:scale-105"
                   onClick={() => navigate("/past-exams")}
                 >
                   <CardHeader className="space-y-4">
@@ -481,11 +519,10 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <CardTitle className="text-xl mb-2">Past Exams</CardTitle>
-                      <CardDescription className="text-base">
-                        Upload and manage past examination papers for students
-                      </CardDescription>
+                      <CardDescription>Manage past exam papers</CardDescription>
                     </div>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex items-center gap-2 text-sm text-secondary font-medium">
                       <span>Manage Exams</span>
@@ -493,17 +530,19 @@ const Dashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
+
               </div>
             </div>
 
-            {/* Teacher Courses */}
+            {/* TEACHER SUBJECTS */}
             {courses.length > 0 && (
               <div className="mt-12">
                 <h2 className="text-2xl font-bold mb-6">Subjects I Teach</h2>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {courses.map((course, index) => (
-                    <Card 
-                      key={course.id} 
+                    <Card
+                      key={course.id}
                       className={`border-l-4 cursor-pointer hover:shadow-lg transition-shadow ${
                         index % 2 === 0 ? "border-l-primary" : "border-l-secondary"
                       }`}
@@ -511,8 +550,9 @@ const Dashboard = () => {
                     >
                       <CardHeader>
                         <CardTitle className="text-lg">{course.subject_name}</CardTitle>
-                        <CardDescription>Manage content and students</CardDescription>
+                        <CardDescription>Manage content & students</CardDescription>
                       </CardHeader>
+
                       <CardContent>
                         <Button variant="outline" size="sm" className="w-full">
                           View Content
@@ -521,6 +561,7 @@ const Dashboard = () => {
                     </Card>
                   ))}
                 </div>
+
               </div>
             )}
           </>
