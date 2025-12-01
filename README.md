@@ -82,8 +82,7 @@ Follow these steps to run the project locally:
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/munyaneza-w/eShuri-Prototype.git
-cd eShuri-Prototype
+git clone https://github.com/munyaneza-w/E-shuri-MVP-.git
 ```
 
 ### 2️⃣ Install Dependencies
@@ -95,10 +94,14 @@ npm install
 
 Create a .env file in the root directory:
 Create a `.env` file in the root directory of the project. This file will store your secret keys for Supabase. You can find these keys in your Supabase project dashboard under **Project Settings > API**.
+### **The below is mine, you can relate to**
 
 ```env
-VITE_SUPABASE_URL="YOUR_SUPABASE_URL"
-VITE_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
+
+import { createClient } from '@supabase/supabase-js'
+const supabaseUrl = 'https://ddsquymbsetpvifptqnw.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
 ```
 
 ### 4️⃣ Run the Development Server
@@ -113,7 +116,7 @@ Access it in your browser at:
 
 ### ☁️ Deployment
 
-Deployed App: https://e-shuri-prototype.vercel.app
+Deployed App: https://eshuri.onrender.com
 
 Hosting: Vercel (Frontend)
 
